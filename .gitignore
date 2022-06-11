@@ -1,4 +1,5 @@
 *.efi
+*.elf
 *.o
 disk.img
 *.json
