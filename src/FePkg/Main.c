@@ -8,7 +8,13 @@
 #include <Protocol/DiskIo2.h>
 #include <Protocol/BlockIo.h>
 #include <Guid/FileInfo.h>
+#include "frame_buffer_config.hpp"
 
+void Halt(void)
+{
+    while (1)
+        __asm__("hlt");
+}
 struct MemoryMap
 {
     UINTN buffer_size;
@@ -179,25 +185,52 @@ EFI_STATUS EFIAPI UefiMain(
     EFI_HANDLE image_handle,
     EFI_SYSTEM_TABLE *system_table)
 {
+    EFI_STATUS status;
     Print(L"Hello, Mikan World!\n");
 
     CHAR8 memmap_buf[4096 * 4];
     struct MemoryMap memmap = {sizeof(memmap_buf), memmap_buf, 0, 0, 0, 0};
-    GetMemoryMap(&memmap);
+    status = GetMemoryMap(&memmap);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to get memmap: %r", status);
+        Halt();
+    }
 
     EFI_FILE_PROTOCOL *root_dir;
-    OpenRootDir(image_handle, &root_dir);
+    status = OpenRootDir(image_handle, &root_dir);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to open root dir: %r", status);
+        Halt();
+    }
 
     EFI_FILE_PROTOCOL *memmap_file;
-    root_dir->Open(
+    status = root_dir->Open(
         root_dir, &memmap_file, L"\\memmap",
         EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE, 0);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to memmap: %r", status);
+        Halt();
+    }
 
-    SaveMemoryMap(&memmap, memmap_file);
+    status = SaveMemoryMap(&memmap, memmap_file);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to save memmap: %r", status);
+        Halt();
+    }
+
     memmap_file->Close(memmap_file);
 
     EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
-    OpenGOP(image_handle, &gop);
+    status = OpenGOP(image_handle, &gop);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to open GOP: %r", status);
+        Halt();
+    }
     Print(L"Resolution: %ux%u, Pixel Format: %s, %u pixels/line\n",
           gop->Mode->Info->HorizontalResolution,
           gop->Mode->Info->VerticalResolution,
@@ -214,24 +247,45 @@ EFI_STATUS EFIAPI UefiMain(
     }
 
     EFI_FILE_PROTOCOL *kernel_file;
-    root_dir->Open(
+    status = root_dir->Open(
         root_dir, &kernel_file, L"\\kernel.elf",
         EFI_FILE_MODE_READ, 0);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to open kernel file: %r", status);
+        Halt();
+    }
     UINTN file_info_size = sizeof(EFI_FILE_INFO) + sizeof(CHAR16) * 12;
     UINT8 file_info_buffer[file_info_size];
-    kernel_file->GetInfo(kernel_file, &gEfiFileInfoGuid,
-                         &file_info_size, file_info_buffer);
+    status = kernel_file->GetInfo(kernel_file, &gEfiFileInfoGuid,
+                                  &file_info_size, file_info_buffer);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to GetInfo from kernel file: %r", status);
+        Halt();
+    }
+
     EFI_FILE_INFO *file_info = (EFI_FILE_INFO *)file_info_buffer;
     UINTN kernel_file_size = file_info->FileSize;
 
     EFI_PHYSICAL_ADDRESS kernel_base_addr = 0x100000;
-    gBS->AllocatePages(
+    status = gBS->AllocatePages(
         AllocateAddress, EfiLoaderData,
         (kernel_file_size + 0xfff) / 0x1000, &kernel_base_addr);
-    kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)kernel_base_addr);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to allocate pages: %r", status);
+        Halt();
+    }
+
+    status = kernel_file->Read(kernel_file, &kernel_file_size, (VOID *)kernel_base_addr);
+    if (EFI_ERROR(status))
+    {
+        Print(L"failed to read kernel file: %r", status);
+        Halt();
+    }
     Print(L"Kernel: 0x%0lx (%lu bytes)\n", kernel_base_addr, kernel_file_size);
 
-    EFI_STATUS status;
     status = gBS->ExitBootServices(image_handle, memmap.map_key);
     if (EFI_ERROR(status))
     {
@@ -251,10 +305,31 @@ EFI_STATUS EFIAPI UefiMain(
         }
     }
 
+    struct FrameBufferConfig config = {
+        (UINT8 *)gop->Mode->FrameBufferBase,
+        gop->Mode->Info->PixelsPerScanLine,
+        gop->Mode->Info->HorizontalResolution,
+        gop->Mode->Info->VerticalResolution,
+        0,
+    };
+
+    switch (gop->Mode->Info->PixelFormat)
+    {
+    case PixelRedGreenBlueReserved8BitPerColor:
+        config.pixel_format = kPixelRGBResv8BitPerColor;
+        break;
+    case PixelBlueGreenRedReserved8BitPerColor:
+        config.pixel_format = kPixelBGRResv8BitPerColor;
+        break;
+    default:
+        Print(L"Unimplemented pixel format: %d\n", gop->Mode->Info->PixelFormat);
+        Halt();
+    }
+
     UINT64 entry_addr = *(UINT64 *)(kernel_base_addr + 24);
-    typedef void EntryPointType(UINT64, UINT64);
+    typedef void EntryPointType(const struct FrameBufferConfig *);
     EntryPointType *entry_point = (EntryPointType *)entry_addr;
-    entry_point(gop->Mode->FrameBufferBase, gop->Mode->FrameBufferSize);
+    entry_point(&config);
 
     Print(L"All done\n");
 
