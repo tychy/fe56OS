@@ -57,4 +57,5 @@ run: disk.img
 clean:
 	@rm -f $(BUILD_DIR)/*
 	@rm -f $(KERNEL_MAKEDIR)/*.o
+	@rm -f $(KERNEL_MAKEDIR)/*.bin
 
