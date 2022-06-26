@@ -5,7 +5,7 @@ SOURCE_DIR=${WORKDIR}/src/kernel
 BUILD_DIR=$(WORKDIR)/build
 LIBC_DIR=$(HOME)/osbook/devenv/x86_64-elf
 EDK2_DIR=$(HOME)/edk2
-MKFONT_CMD=$(WORKDIR)/tools/mkfont/makefont.py
+MKFONT_CMD=$(WORKDIR)/tools/makefont.py
 
 SOURCES=$(wildcard $(SOURCE_DIR)/*.cpp)
 OBJS=$(SOURCES:.cpp=.o)
@@ -25,8 +25,13 @@ LDFLAGS += -L${LIBC_DIR}/lib --entry KernelMain -z norelro -z separate-code --im
 .PHONY: all
 all: $(TARGET)
 
-kernel.elf:  Makefile $(OBJS)
+kernel.elf:  Makefile $(OBJS) font
 	ld.lld $(LDFLAGS)  -o $(BUILD_DIR)/kernel.elf $(OBJS) -lc -lc++
 
 %.o: %.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
+
+.PHONY: font
+font:  hankaku.txt
+	$(MKFONT_CMD) -o hankaku.bin hankaku.txt
+	objcopy -I binary -O elf64-x86-64 -B i386:x86-64 hankaku.bin hankaku.o

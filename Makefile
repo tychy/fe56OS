@@ -41,6 +41,7 @@ disk.img: loader kernel
 	sudo umount mnt
 	sleep 0.5
 
+.PHONY: run
 run: disk.img
 	qemu-system-x86_64 \
 		-m 1G \

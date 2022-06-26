@@ -4,3 +4,4 @@
 disk.img
 *.json
 *.log
+*.bin
