@@ -4,18 +4,10 @@ SOURCE_DIR=$(WORKDIR)/src
 BUILD_DIR=$(WORKDIR)/build
 EDK2_DIR=$(HOME)/edk2
 KERNEL_ELF=$(BUILD_DIR)/kernel.elf
+KERNEL_MAKEDIR=$(SOURCE_DIR)/kernel
+KERNEL_MAKEFILE=$(KERNEL_MAKEDIR)/Makefile 
 
-CXXFLAGS=-O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone \
-	-fno-exceptions -fno-rtti -std=c++17
-CFLAGS=-O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone
 
-BASEDIR := $(HOME)/osbook/devenv/x86_64-elf
-CPPFLAGS := -I$(BASEDIR)/include/c++/v1 -I$(BASEDIR)/include -I$(BASEDIR)/include/freetype2 \
-    -I$(EDK2DIR)/MdePkg/Include -I$(EDK2DIR)/MdePkg/Include/X64 -I$(SOURCE_DIR)/kernel\
-    -nostdlibinc -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS \
-    -DEFIAPI='__attribute__((ms_abi))'
-LDFLAGS := -L$(BASEDIR)/lib --entry=KernelMain -z norelro --image-base 0x100000 --static \
-	-z separate-code
 
 .PHONY: all
 all: loader kernel.elf
@@ -29,10 +21,9 @@ loader: $(EDK2_DIR)/edksetup.sh
 	WORKSPACE=$(EDK2_DIR) build
 
 .PHONY:kernel
-kernel: $(SOURCE_DIR)/kernel/main.cpp
-	clang++ $(CXXFLAGS) $(CPPFLAGS)\
-		-c $(SOURCE_DIR)/kernel/main.cpp -o $(BUILD_DIR)/main.o
-	ld.lld $(LDFLAGS) -o $(KERNEL_ELF) $(BUILD_DIR)/main.o
+kernel: kernel.elf
+kernel.elf: $(KERNEL_MAKEFILE)
+	make -C $(KERNEL_MAKEDIR) all WORKDIR=${WORKDIR}
 
 LOADER_EFI=$(EDK2_DIR)/Build/FeX64/DEBUG_CLANG38/X64/Loader.efi
 MOUNT_POINT=$(WORKDIR)/mnt
@@ -64,4 +55,5 @@ run: disk.img
 .PHONY: clean
 clean:
 	@rm -f $(BUILD_DIR)/*
+	@rm -f $(KERNEL_MAKEDIR)/*.o
 
