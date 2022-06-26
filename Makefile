@@ -1,3 +1,4 @@
+SHELL=/bin/bash
 WORKDIR=$(CURDIR)
 SOURCE_DIR=$(WORKDIR)/src
 BUILD_DIR=$(WORKDIR)/build
