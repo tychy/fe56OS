@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstdio>
 #include <stddef.h>
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
@@ -48,6 +49,11 @@ KernelMain(const struct FrameBufferConfig &frame_buffer_config)
   }
   WriteAscii(*pixel_writer, 50, 50, 'A', {0, 0, 0});
   WriteAscii(*pixel_writer, 58, 50, 'F', {0, 0, 0});
+  WriteString(*pixel_writer, 58, 66, "HOGE)!!", {0, 0, 0});
+
+  char buf[128];
+  sprintf(buf, "1+2= %d", 3);
+  WriteString(*pixel_writer, 58, 82, buf, {0, 0, 0});
 
   while (1)
     __asm__("hlt");

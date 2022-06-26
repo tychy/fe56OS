@@ -8,7 +8,7 @@ EDK2_DIR=$(HOME)/edk2
 MKFONT_CMD=$(WORKDIR)/tools/makefont.py
 
 SOURCES=$(wildcard $(SOURCE_DIR)/*.cpp)
-OBJS=$(SOURCES:.cpp=.o)
+OBJS=$(SOURCES:.cpp=.o) hankaku.o newlib_support.o
 
 CPPFLAGS += -I$(LIBC_DIR)/include/c++/v1 -I$(LIBC_DIR)/include -I$(LIBC_DIR)/include/freetype2 \
             -I$(EDK2_DIR)/MdePkg/Include -I$(EDK2_DIR)/MdePkg/Include/X64 \
@@ -25,13 +25,14 @@ LDFLAGS += -L${LIBC_DIR}/lib --entry KernelMain -z norelro -z separate-code --im
 .PHONY: all
 all: $(TARGET)
 
-kernel.elf:  Makefile $(OBJS) font
-	ld.lld $(LDFLAGS)  -o $(BUILD_DIR)/kernel.elf $(OBJS) hankaku.o -lc -lc++
+kernel.elf:  Makefile $(OBJS) 
+	ld.lld $(LDFLAGS)  -o $(BUILD_DIR)/kernel.elf $(OBJS) -lc -lc++
 
 %.o: %.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
-.PHONY: font
-font:  hankaku.txt
+%.o: %.c Makefile
+	clang $(CPPFLAGS) $(CFLAGS) -c $<
+hankaku.o:  hankaku.txt
 	$(MKFONT_CMD) -o hankaku.bin hankaku.txt
 	objcopy -I binary -O elf64-x86-64 -B i386:x86-64 hankaku.bin hankaku.o
