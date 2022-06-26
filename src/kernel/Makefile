@@ -26,7 +26,7 @@ LDFLAGS += -L${LIBC_DIR}/lib --entry KernelMain -z norelro -z separate-code --im
 all: $(TARGET)
 
 kernel.elf:  Makefile $(OBJS) font
-	ld.lld $(LDFLAGS)  -o $(BUILD_DIR)/kernel.elf $(OBJS) -lc -lc++
+	ld.lld $(LDFLAGS)  -o $(BUILD_DIR)/kernel.elf $(OBJS) hankaku.o -lc -lc++
 
 %.o: %.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
