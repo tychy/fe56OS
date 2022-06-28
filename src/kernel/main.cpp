@@ -15,11 +15,23 @@ void operator delete(void *obj) noexcept
 {
 }
 
-char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
-PixelWriter *pixel_writer;
-
 char console_buf[sizeof(Console)];
 Console *console;
+
+int printk(const char *format, ...)
+{
+  va_list ap;
+  int result;
+  char s[1024];
+  va_start(ap, format);
+  result = vsprintf(s, format, ap);
+  va_end(ap);
+  console->PutString(s);
+  return result;
+}
+
+char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
+PixelWriter *pixel_writer;
 
 extern "C" void
 KernelMain(const struct FrameBufferConfig &frame_buffer_config)
@@ -49,7 +61,7 @@ KernelMain(const struct FrameBufferConfig &frame_buffer_config)
     char buf[128];
     sprintf(buf, "line %d\n", i);
 
-    console->PutString(buf);
+    printk(buf);
   }
 
   while (1)
