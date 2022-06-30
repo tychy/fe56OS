@@ -6,6 +6,38 @@
 #include "font.hpp"
 #include "console.hpp"
 
+const PixelColor kDesktopBGColor{45, 118, 237};
+const PixelColor kDesktopFGColor{255, 255, 255};
+
+const int kMouseCursorWidth = 15;
+const int kMouseCursorHeight = 24;
+const char mouse_cursor_shape[kMouseCursorHeight][kMouseCursorWidth + 1] = {
+    "@              ",
+    "@@             ",
+    "@.@            ",
+    "@..@           ",
+    "@...@          ",
+    "@....@         ",
+    "@.....@        ",
+    "@......@       ",
+    "@.......@      ",
+    "@........@     ",
+    "@.........@    ",
+    "@..........@   ",
+    "@...........@  ",
+    "@............@ ",
+    "@......@@@@@@@@",
+    "@......@       ",
+    "@....@@.@      ",
+    "@...@ @.@      ",
+    "@..@   @.@     ",
+    "@.@    @.@     ",
+    "@@      @.@    ",
+    "@       @.@    ",
+    "         @.@   ",
+    "         @@@   ",
+};
+
 void *operator new(size_t size, void *buf)
 {
   return buf;
@@ -55,15 +87,42 @@ KernelMain(const struct FrameBufferConfig &frame_buffer_config)
       pixel_writer->Write(x, y, {255, 255, 255});
     }
   }
-  console = new (console_buf) Console{*pixel_writer, {0, 0, 0}, {255, 255, 255}};
-  for (int i = 0; i < 25; i++)
+  const int kFrameWidth = frame_buffer_config.horizontal_resolution;
+  const int kFrameHeight = frame_buffer_config.vertical_resolution;
+
+  FillRectangle(*pixel_writer,
+                {0, 0},
+                {kFrameWidth, kFrameHeight - 50},
+                kDesktopBGColor);
+  FillRectangle(*pixel_writer,
+                {0, kFrameHeight - 50},
+                {kFrameWidth, 50},
+                {1, 8, 17});
+  FillRectangle(*pixel_writer,
+                {0, kFrameHeight - 50},
+                {kFrameWidth / 5, 50},
+                {80, 80, 80});
+  DrawRectangle(*pixel_writer,
+                {10, kFrameHeight - 40},
+                {30, 30},
+                {160, 160, 160});
+  console = new (console_buf) Console{
+      *pixel_writer, kDesktopFGColor, kDesktopBGColor};
+  printk("Welcome to MikanOS!\n");
+  for (int y = 0; y < kMouseCursorHeight; y++)
   {
-    char buf[128];
-    sprintf(buf, "line %d\n", i);
-
-    printk(buf);
+    for (int x = 0; x < kMouseCursorWidth; x++)
+    {
+      if (mouse_cursor_shape[y][x] == '@')
+      {
+        pixel_writer->Write(x + 200, y + 100, {0, 0, 0});
+      }
+      else if (mouse_cursor_shape[y][x] == '.')
+      {
+        pixel_writer->Write(x + 200, y + 100, {255, 255, 255});
+      }
+    }
   }
-
   while (1)
     __asm__("hlt");
 }
