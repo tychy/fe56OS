@@ -17,13 +17,13 @@ namespace
                | shl(bus, 16) | shl(device, 11) | shl(function, 8) | (reg_addr & 0xfcu);
     }
 
-    Error AddDevice(uint8_t bus, uint8_t device, uint8_t function, uint8_t header_type)
+    Error AddDevice(Device dev)
     {
         if (num_device == devices.size())
         {
             return Error::kFull;
         }
-        devices[num_device] = Device{bus, device, function, header_type};
+        devices[num_device] = dev;
         ++num_device;
         return Error::kSuccess;
     }
@@ -32,15 +32,15 @@ namespace
 
     Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function)
     {
+        ClassCode class_code = ReadClassCode(bus, device, function);
         auto header_type = ReadHeaderType(bus, device, function);
-        if (auto err = AddDevice(bus, device, function, header_type))
+        Device dev{bus, device, function, header_type, class_code};
+        if (auto err = AddDevice(dev))
         {
             return err;
         }
-        auto class_code = ReadClassCode(bus, device, function);
-        uint8_t base = (class_code >> 24) & 0xffu;
-        uint8_t sub = (class_code >> 16) & 0xffu;
-        if (base == 0x06u && sub == 0x04u)
+
+        if (class_code.Match(0x06u, 0x04u))
         {
             // PCI- PCI bridge
             auto bus_numbers = ReadBusNumbers(bus, device, function);
@@ -116,10 +116,15 @@ namespace pci
         return ReadData() & 0xffffu;
     }
 
-    uint32_t ReadClassCode(uint8_t bus, uint8_t device, uint8_t function)
+    ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function)
     {
         WriteAddress(MakeAddress(bus, device, function, 0x08));
-        return ReadData();
+        auto class_code = ReadData();
+        ClassCode cc;
+        cc.base = (class_code >> 24) & 0xffu;
+        cc.sub = (class_code >> 16) & 0xffu;
+        cc.interface = (class_code >> 8) & 0xffu;
+        return cc;
     }
 
     uint8_t ReadHeaderType(uint8_t bus, uint8_t device, uint8_t function)

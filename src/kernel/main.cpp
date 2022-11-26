@@ -131,6 +131,22 @@ KernelMain(const struct FrameBufferConfig &frame_buffer_config)
     printk("%d.%d.%d: vend %04x, class %08x, head %02x\n",
            dev.bus, dev.device, dev.function, vendor_id, class_code, dev.header_type);
   }
+  pci::Device *xhc_dev = nullptr;
+  for (int i = 0; i < pci::num_device; i++)
+  {
+    if (pci::devices[i].class_code.Match(0x0cu, 0x03u, 0x30u))
+    {
+      xhc_dev = &pci::devices[i];
+      if (0x8086 == pci::ReadVendorId(*xhc_dev))
+      {
+        break;
+      }
+    }
+  }
+  if (xhc_dev)
+  {
+    printk("xHC has been found: %d.%d.%d", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+  }
 
   while (1)
     __asm__("hlt");
