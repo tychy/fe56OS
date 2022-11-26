@@ -8,7 +8,7 @@ EDK2_DIR=$(HOME)/edk2
 MKFONT_CMD=$(WORKDIR)/tools/makefont.py
 
 SOURCES=$(wildcard $(SOURCE_DIR)/*.cpp)
-OBJS=$(SOURCES:.cpp=.o) hankaku.o newlib_support.o
+OBJS=$(SOURCES:.cpp=.o) hankaku.o newlib_support.o asmfunc.o
 
 CPPFLAGS += -I$(LIBC_DIR)/include/c++/v1 -I$(LIBC_DIR)/include -I$(LIBC_DIR)/include/freetype2 \
             -I$(EDK2_DIR)/MdePkg/Include -I$(EDK2_DIR)/MdePkg/Include/X64 \
@@ -33,6 +33,10 @@ kernel.elf:  Makefile $(OBJS)
 
 %.o: %.c Makefile
 	clang $(CPPFLAGS) $(CFLAGS) -c $<
+
+%.o: %.asm Makefile
+	nasm -f elf64 -o $@ $<
+
 hankaku.o:  hankaku.txt
 	$(MKFONT_CMD) -o hankaku.bin hankaku.txt
 	objcopy -I binary -O elf64-x86-64 -B i386:x86-64 hankaku.bin hankaku.o
