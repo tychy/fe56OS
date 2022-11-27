@@ -117,15 +117,15 @@ KernelMain(const struct FrameBufferConfig &frame_buffer_config)
       pixel_writer, kDesktopBGColor, {300, 200}};
 
   auto err = pci::ScanAllBus();
-  printk("ScanAllBus: %s\n", err.Name());
+  Log(kDebug, "ScanAllBus: %s\n", err.Name());
 
   for (int i = 0; i < pci::num_device; i++)
   {
     const auto &dev = pci::devices[i];
     auto vendor_id = pci::ReadVendorId(dev.bus, dev.device, dev.function);
     auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
-    printk("%d.%d.%d: vend %04x, class %08x, head %02x\n",
-           dev.bus, dev.device, dev.function, vendor_id, class_code, dev.header_type);
+    Log(kDebug, "%d.%d.%d: vend %04x, class %08x, head %02x\n",
+        dev.bus, dev.device, dev.function, vendor_id, class_code, dev.header_type);
   }
   pci::Device *xhc_dev = nullptr;
   for (int i = 0; i < pci::num_device; i++)
@@ -141,13 +141,13 @@ KernelMain(const struct FrameBufferConfig &frame_buffer_config)
   }
   if (xhc_dev)
   {
-    printk("xHC has been found: %d.%d.%d", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+    Log(kDebug, "xHC has been found: %d.%d.%d", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
   }
 
   const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
-  printk("ReadBar: %s\n", xhc_bar.error.Name());
+  Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
   const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
-  printk("xHC mmio_base = %08lx\n", xhc_mmio_base);
+  Log(kDebug, "xHC mmio_base = %08lx\n", xhc_mmio_base);
 
   usb::xhci::Controller xhc{xhc_mmio_base};
   if (0x8086 == pci::ReadVendorId(*xhc_dev))
@@ -156,10 +156,10 @@ KernelMain(const struct FrameBufferConfig &frame_buffer_config)
   }
   {
     auto err = xhc.Initialize();
-    printk("xhc.Initialize: %s\n", err.Name());
+    Log(kDebug, "xhc.Initialize: %s\n", err.Name());
   }
 
-  printk("xHC starting\n");
+  Log(kDebug, "xHC starting\n");
   xhc.Run();
 
   usb::HIDMouseDriver::default_observer = MouseObserver;
