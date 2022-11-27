@@ -8,11 +8,16 @@ EDK2_DIR=$(HOME)/edk2
 MKFONT_CMD=$(WORKDIR)/tools/makefont.py
 
 SOURCES=$(wildcard $(SOURCE_DIR)/*.cpp)
-OBJS=$(SOURCES:.cpp=.o) hankaku.o newlib_support.o asmfunc.o
+OBJS=$(SOURCES:.cpp=.o) hankaku.o newlib_support.o asmfunc.o \
+        usb/memory.o usb/device.o usb/xhci/ring.o usb/xhci/trb.o usb/xhci/xhci.o \
+        usb/xhci/port.o usb/xhci/device.o usb/xhci/devmgr.o usb/xhci/registers.o \
+        usb/classdriver/base.o usb/classdriver/hid.o usb/classdriver/keyboard.o \
+        usb/classdriver/mouse.o
+
 
 CPPFLAGS += -I$(LIBC_DIR)/include/c++/v1 -I$(LIBC_DIR)/include -I$(LIBC_DIR)/include/freetype2 \
             -I$(EDK2_DIR)/MdePkg/Include -I$(EDK2_DIR)/MdePkg/Include/X64 \
-			-I$(SOURCE_DIR)/include \
+			-I$(SOURCE_DIR)/.\
 			-nostdlibinc  -D__ELF__ -D_LDBL_EQ_DBL -D_GNU_SOURCE -D_POSIX_TIMERS\
 			 -DEFIAPI='__attribute__((ms_abi))'
 CFLAGS   += -O2 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone

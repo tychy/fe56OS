@@ -47,4 +47,14 @@ namespace pci
     inline std::array<Device, 32> devices;
     inline int num_device;
     Error ScanAllBus();
+
+    constexpr uint8_t CalcBarAddress(unsigned int bar_index)
+    {
+        return 0x10u + 4 * bar_index;
+    }
+
+    uint32_t ReadConfReg(const Device &device, uint32_t addr);
+    void WriteConfReg(const Device &dev, uint8_t reg_addr, uint32_t value);
+
+    WithError<uint64_t> ReadBar(Device &device, unsigned int bar_index);
 }
